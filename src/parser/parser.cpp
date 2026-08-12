@@ -14,6 +14,31 @@ std::string variantToString1(const Value &a);
 StmtPtr parseStatement(const std::vector<Token> &tokens, size_t &pos);
 ExprPtr parseExpression(const std::vector<Token> &tokens, size_t &pos, int minBindPower);
 
+
+StmtPtr parseAssignment(const std::vector<Token>& tokens, size_t& pos)
+{
+    ExprPtr target = parseExpression(tokens, pos, 0);
+
+    if (pos >= tokens.size() ||
+        tokens[pos].type != TokenType::Equal)
+    {
+        throw std::runtime_error("Expected '='");
+    }
+
+    ++pos; // consume '='
+
+    ExprPtr value = parseExpression(tokens, pos, 0);
+
+    Assignment assignment{
+        std::move(value),
+        std::move(target)
+    };
+
+    return std::make_unique<Stmt>(
+        std::move(assignment)
+    );
+}
+
 ExprPtr parseArrayLiteral(const std::vector<Token> &tokens, size_t &pos){
     ArrayLiteral array;
     ++pos; //this is to consume the OpenBracket.
@@ -305,14 +330,59 @@ std::string variantToString1(const Value &a)
         } }, a);
 }
 
+
+StmtPtr parseExpressionStatement(
+    const std::vector<Token>& tokens,
+    size_t& pos)
+{
+    ExprPtr expr = parseExpression(tokens, pos, 0);
+
+    if (pos < tokens.size() &&
+        tokens[pos].type == TokenType::StatementEnd)
+    {
+        ++pos;
+    }
+
+    return std::make_unique<Stmt>(
+        ExpressionStatement{std::move(expr)}
+    );
+}
+
+StmtPtr parseImport(const std::vector<Token>& tokens, size_t& pos)
+{
+    std::vector<std::string> pathS;
+
+    ++pos; // consume 'using'
+
+    if (pos >= tokens.size())
+        throw std::runtime_error("Expected import path");
+
+    if (tokens[pos].type == TokenType::String)
+    {
+        pathS.push_back(
+            variantToString1(tokens[pos].value)
+        );
+
+        ++pos;
+
+        return std::make_unique<Stmt>(
+            ImportStatement{std::move(pathS)}
+        );
+    }
+
+    throw std::runtime_error(
+        "Expected string after 'using'"
+    );
+}
+
 ExprPtr parseFunctionCall(
-    const std::vector<Token> &tokens,
-    size_t &pos)
+    const std::vector<Token> & tokens,
+    size_t & pos)
 {
     std::string name =
         variantToString1(tokens[pos].value);
 
-    ++pos; // consume function name
+    ++pos; 
 
     if (pos >= tokens.size() ||
         tokens[pos].type != TokenType::OpenParan)
@@ -703,24 +773,38 @@ StmtPtr parseFunctionDeclare(const std::vector<Token> &tokens, size_t &pos)
     return parseVariableDeclare(tokens, pos);
 }
 // let global a = 10;
-StmtPtr parseStatement(const std::vector<Token> &tokens, size_t &pos)
+StmtPtr parseStatement(const std::vector<Token>& tokens, size_t& pos)
 {
-
     switch (tokens[pos].type)
     {
     case TokenType::Identifier:
+    {
+        std::string name =
+            variantToString1(tokens[pos].value);
 
-        if (variantToString1(tokens[pos].value) == "let")
+        if (name == "let")
             return parseVariableDeclare(tokens, pos);
-        else if (variantToString1(tokens[pos].value) == "fn")
+
+        if (name == "fn")
             return parseFunctionDeclare(tokens, pos);
-        break;
+
+        if (name == "using")
+            return parseImport(tokens, pos);
+
+        if (pos + 1 < tokens.size() &&
+            tokens[pos + 1].type == TokenType::OpenParan)
+        {
+            return parseExpressionStatement(tokens, pos);
+        }
+
+        return parseAssignment(tokens, pos);
+    }
 
     default:
         break;
     }
 
-    return parseVariableDeclare(tokens, pos);
+    throw std::runtime_error("Unexpected token");
 }
 
 Program parse(const std::vector<Token> &tokens)

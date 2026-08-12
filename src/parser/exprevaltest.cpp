@@ -189,6 +189,26 @@ void printProgram(const Program& program)
                     std::cout << "      <none>\n";
                 }
             }
+            else if constexpr (std::is_same_v<T, Assignment>)
+            {
+                std::cout << "  " << "Assignment:\n";
+
+                std::cout << "    " << "  Target:\n";
+                printExpr(node.target, 3);
+
+                std::cout << "    " << "  Value:\n";
+                printExpr(node.value, 3);
+            }
+            else if constexpr (std::is_same_v<T,ImportStatement>){
+                std::cout << "  Import: \n";
+                std::cout << "     Path:" << node.pathS[0] << "\n";
+            }
+
+            else if constexpr (std::is_same_v<T,ExpressionStatement>){
+                std::cout << "  ExpressionStatement: \n";
+                std::cout << "    Expression: " ;
+                printExpr(node.expression);
+            }
 
             // Add more statement types here later.
 

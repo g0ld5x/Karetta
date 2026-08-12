@@ -142,10 +142,12 @@ struct VariableDeclaration
     std::string name;
 };
 
+
+
 struct Assignment
 {
     ExprPtr value;
-    std::string name;
+    ExprPtr target;
     TokenType op;
 };
 
@@ -171,6 +173,10 @@ struct WhileStatement
     std::vector<StmtPtr> body;
 };
 
+struct ImportStatement
+{
+    std::vector<std::string> pathS;
+};
 
 
 struct Stmt
@@ -181,7 +187,8 @@ struct Stmt
         ExpressionStatement,
         ReturnStatement,
         IfStatement,
-        WhileStatement
+        WhileStatement,
+        ImportStatement
     >;
 
     Value value;
