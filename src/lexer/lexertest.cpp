@@ -22,6 +22,9 @@ std::string arrayToString(const std::shared_ptr<ArrayValue> &array)
     return result;
 }
 
+
+
+
 std::string variantToString(const Value& a)
 {
     return std::visit([](const auto& arg) -> std::string
@@ -48,6 +51,90 @@ std::string variantToString(const Value& a)
     }, a);
 }
 
+
+
+std::string tokenTypeToString2(TokenType type)
+{
+    switch (type)
+    {
+    case TokenType::Add:
+        return "+";
+    case TokenType::Minus:
+        return "-";
+    case TokenType::Multiply:
+        return "*";
+    case TokenType::Divide:
+        return "/";
+    case TokenType::Modulo:
+        return "%";
+
+    case TokenType::Equal:
+        return "=";
+    case TokenType::EqualEqual:
+        return "==";
+    case TokenType::NotEqual:
+        return "!=";
+    case TokenType::isType:
+        return "isType";
+    case TokenType::Smaller:
+        return "<";
+    case TokenType::SmallerEqual:
+        return "<=";
+    case TokenType::Bigger:
+        return ">";
+    case TokenType::BiggerEqual:
+        return ">=";
+
+    case TokenType::BitAnd:
+        return "&";
+    case TokenType::BitOr:
+        return "|";
+    case TokenType::BitXor:
+        return "^";
+    case TokenType::BitNot:
+        return "~";
+
+    case TokenType::AndAnd:
+        return "&&";
+    case TokenType::OrOr:
+        return "||";
+    case TokenType::UnaryNot:
+        return "!";
+
+    case TokenType::BitLeft:
+        return "<<";
+    case TokenType::BitRight:
+        return ">>";
+
+    case TokenType::OpenParan:
+        return "(";
+    case TokenType::CloseParan:
+        return ")";
+    case TokenType::Comma:
+        return ",";
+    case TokenType::StatementEnd:
+        return ";";
+
+    case TokenType::Identifier:
+        return "identifier";
+    case TokenType::Int:
+        return "integer";
+    case TokenType::Double:
+        return "double";
+    case TokenType::String:
+        return "string";
+    case TokenType::Char:
+        return "char";
+    case TokenType::Bool:
+        return "bool";
+    case TokenType::EndOfFile:
+        return "EOF";
+
+    default:
+        return "unknown";
+    }
+}
+
 int main(){
     while(true){
         std::string code = "";
@@ -57,26 +144,8 @@ int main(){
 
         for (auto &i : lexed)
         {
-            if(i.type == TokenType::Identifier){
-                std::cout << "Identifier(" << variantToString(i.value) << ")";
-            }
-            if(i.type == TokenType::Int){
-                std::cout << "Int(" << variantToString(i.value) << ")";
-            }
-            if(i.type == TokenType::Double){
-                std::cout << "Double(" << variantToString(i.value) << ")";
-            }
-            if(i.type == TokenType::String){
-                std::cout << "String(" << variantToString(i.value) << ")";
-            }
-            if(i.type == TokenType::Char){
-                std::cout << "Char(" << variantToString(i.value) << ")";
-            }
-            if(i.type == TokenType::Bool){
-                std::cout << "Bool(" << variantToString(i.value) << ")";
-            }
-            std::cout << "\n";
-        }
+            std::cout << tokenTypeToString2(i.type) << "\n";
         
     }
+}
 }

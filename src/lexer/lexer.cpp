@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <variant>
+#include <sstream>
 #include <memory>
 #include <iostream>
 inline bool isCharacter(const char &ch)

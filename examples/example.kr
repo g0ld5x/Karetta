@@ -1,0 +1,7 @@
+using "stdlib"
+
+fn main(){
+    while true {
+    std.print(std.input("hello!"))
+}
+}
