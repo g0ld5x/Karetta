@@ -10,6 +10,42 @@
 #include "../lexer/lexer.hpp"
 #include "parser.hpp"
 
+std::string variantToString1(const Value &a);
+StmtPtr parseStatement(const std::vector<Token> &tokens, size_t &pos);
+ExprPtr parseExpression(const std::vector<Token> &tokens, size_t &pos, int minBindPower);
+
+ExprPtr parseArrayLiteral(const std::vector<Token> &tokens, size_t &pos){
+    ArrayLiteral array;
+    ++pos; //this is to consume the OpenBracket.
+        if (tokens[pos].type == TokenType::CloseBracket)
+    {
+        ++pos;
+        return std::make_unique<Expr>(std::move(array));
+    }
+
+    while (true)
+    {
+        array.elements.push_back(
+            parseExpression(tokens, pos, 0)
+        );
+
+        if (tokens[pos].type == TokenType::CloseBracket)
+        {
+            ++pos;
+            break;
+        }
+
+        else if (tokens[pos].type == TokenType::Comma)
+        {
+            ++pos;
+        }
+
+
+    }
+
+    return std::make_unique<Expr>(std::move(array));
+}
+
 std::string tokenTypeToString1(TokenType type)
 {
     switch (type)
@@ -159,9 +195,6 @@ bool variantToBool(const Value &value)
     }
 }
 
-std::string variantToString1(const Value &a);
-StmtPtr parseStatement(const std::vector<Token> &tokens, size_t &pos);
-ExprPtr parseExpression(const std::vector<Token> &tokens, size_t &pos, int minBindPower);
 std::string arrayToString(const std::shared_ptr<ArrayValue> &array)
 {
     std::string result = "[";
@@ -192,6 +225,8 @@ int getBindingPower(TokenType type)
     switch (type)
     {
     // Multiplicative
+    case TokenType::OpenBracket:
+        return 100;
     case TokenType::Multiply:
     case TokenType::Divide:
     case TokenType::Modulo:
@@ -358,6 +393,10 @@ ExprPtr parseExpression(const std::vector<Token> &tokens, size_t &pos, int minBi
             DoubleLiteral{variantToDouble(tokens[pos].value)});
         ++pos;
     }
+    else if (tokens[pos].type == TokenType::OpenBracket)
+    {
+        lhs = parseArrayLiteral(tokens, pos);
+    }
     else if (tokens[pos].type == TokenType::String)
     {
         lhs = std::make_unique<Expr>(
@@ -394,24 +433,52 @@ ExprPtr parseExpression(const std::vector<Token> &tokens, size_t &pos, int minBi
     {
         // unary expression
     }
-    while (pos < tokens.size() &&
-           getBindingPower(tokens[pos].type) > minBindPower)
+while (pos < tokens.size() &&
+       getBindingPower(tokens[pos].type) > minBindPower)
+{
+    TokenType op = tokens[pos].type;
+
+    // Array indexing
+    if (op == TokenType::OpenBracket)
     {
-        TokenType op = tokens[pos].type;
-        int bindPower = getBindingPower(tokens[pos].type);
+        ++pos; // consume '['
+        
+        ExprPtr index = parseExpression(tokens, pos, 0);
 
-        ++pos;
+        if (pos >= tokens.size() ||
+            tokens[pos].type != TokenType::CloseBracket)
+        {
+            std::cout << "Pos: " << pos << " Tokens size: " << tokens.size() << "\n";
+            throw std::runtime_error("Expected ']'");
+        }
 
-        ExprPtr rhs = parseExpression(
-            tokens,
-            pos,
-            bindPower);
+        ++pos; // consume ']'
+
         lhs = std::make_unique<Expr>(
-            BinaryExpr{
+            IndexExpr{
                 std::move(lhs),
-                std::move(rhs),
-                op});
+                std::move(index)
+            });
+
+        continue;
     }
+
+    // Normal binary operator
+    int bindPower = getBindingPower(op);
+
+    ++pos;
+
+    ExprPtr rhs = parseExpression(
+        tokens,
+        pos,
+        bindPower);
+
+    lhs = std::make_unique<Expr>(
+        BinaryExpr{
+            std::move(lhs),
+            std::move(rhs),
+            op});
+}
     return lhs;
 }
 
@@ -422,6 +489,7 @@ StmtPtr parseVariableDeclare(const std::vector<Token> &tokens, size_t &pos)
         VariableDeclaration vardeclare;
 
         bool isStrict = false;
+        bool isMonoType = false;
         bool isGlobal = false;
         bool unInitialized = false;
 
@@ -459,6 +527,12 @@ StmtPtr parseVariableDeclare(const std::vector<Token> &tokens, size_t &pos)
                 }
                 isStrict = true;
             }
+            else if(value == "monotype"){
+                if(isMonoType){
+                    throw std::runtime_error("Already used 'monotype' modfier.");
+                }
+                isMonoType = true;
+            }
             else if (value == "global")
             {
                 if (isGlobal)
@@ -491,6 +565,7 @@ StmtPtr parseVariableDeclare(const std::vector<Token> &tokens, size_t &pos)
 
         vardeclare.vardata.isConst = false;
         vardeclare.vardata.isGlobal = isGlobal;
+        vardeclare.vardata.isMonoType = isMonoType;
         vardeclare.vardata.isStrict = isStrict;
 
         if (tokens[pos].type == TokenType::StatementEnd || tokens[pos].type == TokenType::EndOfFile)
@@ -505,21 +580,12 @@ StmtPtr parseVariableDeclare(const std::vector<Token> &tokens, size_t &pos)
                 "Expected '=' in variable declaration.");
         }
 
-        ++pos; // consume '='
+        ++pos;
 
         vardeclare.initializer =
             parseExpression(tokens, pos, 0);
 
-        // Expression must end at StatementEnd or EOF
-        if (pos < tokens.size() &&
-            tokens[pos].type != TokenType::StatementEnd &&
-            tokens[pos].type != TokenType::EndOfFile)
-        {
-            throw std::runtime_error(
-                "Expected end of statement.");
-        }
 
-        // Consume ';' / newline, but don't consume EOF
         if (pos < tokens.size() &&
             tokens[pos].type == TokenType::StatementEnd)
         {
@@ -535,9 +601,10 @@ if (variantToString1(tokens[pos].value) == "const")
 
         bool isStrict = false;
         bool isGlobal = false;
+        bool isMonoType = false;
         bool unInitialized = false;
 
-        ++pos; // global a = 100;
+        ++pos;
 
         while (pos < tokens.size() &&
                tokens[pos].type == TokenType::Identifier)
@@ -572,6 +639,12 @@ if (variantToString1(tokens[pos].value) == "const")
                 }
                 isStrict = true;
             }
+            else if(value == "monotype"){
+                if(isMonoType){
+                    throw std::runtime_error("Already used 'monotype' modfier.");
+                }
+                isMonoType = true;
+            }
             else if (value == "global")
             {
                 if (isGlobal)
@@ -592,6 +665,7 @@ if (variantToString1(tokens[pos].value) == "const")
         vardeclare.vardata.isConst = true;
         vardeclare.vardata.isGlobal = isGlobal;
         vardeclare.vardata.isStrict = isStrict;
+        vardeclare.vardata.isMonoType = isMonoType;
 
         if (tokens[pos].type == TokenType::StatementEnd || tokens[pos].type == TokenType::EndOfFile)
         {
@@ -605,21 +679,14 @@ if (variantToString1(tokens[pos].value) == "const")
                 "Expected '=' in variable declaration.");
         }
 
-        ++pos; // consume '='
+        ++pos; 
 
         vardeclare.initializer =
             parseExpression(tokens, pos, 0);
 
-        // Expression must end at StatementEnd or EOF
-        if (pos < tokens.size() &&
-            tokens[pos].type != TokenType::StatementEnd &&
-            tokens[pos].type != TokenType::EndOfFile)
-        {
-            throw std::runtime_error(
-                "Expected end of statement.");
-        }
 
-        // Consume ';' / newline, but don't consume EOF
+
+        
         if (pos < tokens.size() &&
             tokens[pos].type == TokenType::StatementEnd)
         {

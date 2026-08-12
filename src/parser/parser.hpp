@@ -30,6 +30,7 @@ struct VarData{
     VarType variableType;
     bool isGlobal;
     bool isConst;
+    bool isMonoType;
 };
 
 struct Variable{
@@ -50,6 +51,15 @@ struct IntLiteral
 struct DoubleLiteral
 {
     double value;
+};
+
+struct IndexExpr{
+    ExprPtr object;
+    ExprPtr index;
+};
+
+struct ArrayLiteral {
+    std::vector<ExprPtr> elements;
 };
 
 struct VariableCall{
@@ -102,6 +112,8 @@ struct Expr
         CharLiteral,
         StringLiteral,
         VariableCall,
+        ArrayLiteral,
+        IndexExpr,
         FunctionCall,
         BinaryExpr,
         UnaryExpr

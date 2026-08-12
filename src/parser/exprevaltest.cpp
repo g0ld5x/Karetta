@@ -69,6 +69,22 @@ void printExpr(const ExprPtr& expr, int depth = 0)
             std::cout << indent << "Double: "
                       << node.value << '\n';
         }
+        else if constexpr (std::is_same_v<T, IndexExpr>)
+        {
+            std::cout << indent << "IndexExpression:\n";
+
+            std::cout << indent << "  Object:\n";
+            if (node.object)
+                printExpr(node.object, depth + 2);
+            else
+                std::cout << indent << "    <null>\n";
+
+            std::cout << indent << "  Index:\n";
+            if (node.index)
+                printExpr(node.index, depth + 2);
+            else
+                std::cout << indent << "    <null>\n";
+        }
         else if constexpr (std::is_same_v<T, BoolLiteral>)
         {
             std::cout << indent << "Bool: "
@@ -83,6 +99,15 @@ void printExpr(const ExprPtr& expr, int depth = 0)
         {
             std::cout << indent << "String: "
                       << node.value << '\n';
+        }
+        else if constexpr (std::is_same_v<T, ArrayLiteral>)
+        {
+            std::cout << indent << "Array:\n";
+
+            for (const auto& element : node.elements)
+            {
+                printExpr(element, depth + 1);
+            }
         }
         else if constexpr (std::is_same_v<T, VariableCall>)
         {
@@ -144,6 +169,9 @@ void printProgram(const Program& program)
                           << std::boolalpha
                           << node.vardata.isConst << '\n';
 
+                std::cout << "    MonoType: "
+                          << std::boolalpha
+                          << node.vardata.isMonoType << '\n';
                 std::cout << "    Global: "
                           << node.vardata.isGlobal << '\n';
 
