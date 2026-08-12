@@ -92,7 +92,7 @@ std::string tokenTypeToString1(TokenType type)
         return "unknown";
     }
 }
-
+ //cool stuff
 double variantToDouble(const Value &value)
 {
     if (const auto *p = std::get_if<double>(&value))
