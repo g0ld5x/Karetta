@@ -361,11 +361,109 @@ StmtPtr parseExpressionStatement(
         ExpressionStatement{std::move(expr)});
 }
 
-StmtPtr parseImport(const std::vector<Token> &tokens, size_t &pos)
+
+StmtPtr parseIf(const std::vector<Token> & tokens,size_t & pos)
+{
+    IfStatement ifstmt;
+
+    ++pos; 
+
+    
+    ifstmt.condition =
+        parseExpression(tokens, pos, 0);
+
+    if (pos >= tokens.size() || tokens[pos].type != TokenType::OpenCurl)
+    {
+        throw std::runtime_error("Expected '{'");
+    }
+
+    ++pos;
+
+    
+    while (pos < tokens.size() && tokens[pos].type != TokenType::CloseCurl)
+    {
+        ifstmt.body.statements.push_back(parseStatement(tokens, pos));
+    }
+
+    if (pos >= tokens.size()){
+        throw std::runtime_error("Expected '}'");
+    }
+    ++pos; 
+
+    return std::make_unique<Stmt>(std::move(ifstmt));
+}
+
+StmtPtr parseWhile(const std::vector<Token> & tokens, size_t & pos)
+{
+    WhileStatement whilestmt;
+
+    ++pos;
+
+    
+    whilestmt.condition = parseExpression(tokens, pos, 0);
+    if (pos >= tokens.size() || tokens[pos].type != TokenType::OpenCurl)
+    {
+        throw std::runtime_error("Expected '{'");
+    }
+
+    ++pos;
+
+    
+    while (pos < tokens.size() && tokens[pos].type != TokenType::CloseCurl)
+    {
+        whilestmt.body.statements.push_back(parseStatement(tokens, pos));
+    }
+
+    if (pos >= tokens.size()){
+        throw std::runtime_error("Expected '}'");
+    }
+    ++pos;
+
+    return std::make_unique<Stmt>(std::move(whilestmt));
+}
+
+StmtPtr parseFor(const std::vector<Token> & tokens, size_t & pos){
+    //for fruit : fruits { . . . } or for fruit in fruits { . . . }
+    ForStatement forstmt;
+    ++pos; //consume for
+    if(tokens[pos].type != TokenType::Identifier){
+        throw std::runtime_error("Expected a variable name.");
+    }
+    forstmt.variableName = variantToString1(tokens[pos].value);
+    ++pos; //consume the variable name
+    if(tokens[pos].type != TokenType::InOperator){
+        throw std::runtime_error("Expected ':' or 'in'.");
+    }
+    ++pos;
+    forstmt.iterable = parseExpression(tokens,pos,0);
+    if (pos >= tokens.size() || tokens[pos].type != TokenType::OpenCurl)
+    {
+        throw std::runtime_error("Expected '{'");
+    }
+
+    ++pos;
+
+    
+    while (pos < tokens.size() && tokens[pos].type != TokenType::CloseCurl)
+    {
+        forstmt.body.statements.push_back(parseStatement(tokens, pos));
+    }
+
+    if (pos >= tokens.size()){
+        throw std::runtime_error("Expected '}'");
+    }
+    ++pos; 
+
+    return std::make_unique<Stmt>(std::move(forstmt));
+
+
+}
+
+StmtPtr parseImport(const std::vector<Token> & tokens, size_t & pos)
 {
     std::vector<std::string> pathS;
 
-    ++pos; // consume 'using'
+    ++pos; 
 
     if (pos >= tokens.size())
         throw std::runtime_error("Expected import path");
@@ -876,7 +974,12 @@ StmtPtr parseStatement(const std::vector<Token> &tokens, size_t &pos)
         }
         else if (name == "fn")
             return parseFunctionDeclare(tokens, pos);
-
+        else if (name == "if")
+            return parseIf(tokens,pos);
+        else if (name == "while")
+            return parseWhile(tokens,pos);
+        else if (name == "for")
+            return parseFor(tokens,pos);
         else if (name == "using")
             return parseImport(tokens, pos);
         else if (name == "break")
@@ -896,7 +999,7 @@ StmtPtr parseStatement(const std::vector<Token> &tokens, size_t &pos)
         break;
     }
 
-    throw std::runtime_error("Unexpected token");
+    throw std::runtime_error("Unexpected token ' " + tokenTypeToString1(tokens[pos].type) + "' ");
 }
 
 Program parse(const std::vector<Token> &tokens)

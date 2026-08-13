@@ -269,8 +269,25 @@ void printProgram(const Program &program)
                            std::cout << "      Body: ";
                            printProgram(node.body);
                        }
-
-                       // Add more statement types here later.
+                       else if constexpr (std::is_same_v<T,IfStatement>){
+                        std::cout << "      If Statement: \n Condition:";
+                        printExpr(node.condition);
+                        std::cout<< "Body: \n";
+                        printProgram(node.body);
+                       }
+                       else if constexpr (std::is_same_v<T,WhileStatement>){
+                        std::cout << "      While Statement: \n Condition:";
+                        printExpr(node.condition);
+                        std::cout<< "Body: \n";
+                        printProgram(node.body);
+                       }
+                       else if constexpr (std::is_same_v<T,ForStatement>){
+                        std::cout << "      For Statement: \n Variable Name:  " << node.variableName<< "\n";
+                        std::cout << "Iterable: "; printExpr(node.iterable);
+                        std::cout << "\n Body: "; printProgram(node.body);
+                        
+                       }
+                       //add more statement types here later.
                    },
                    stmt->value);
     }

@@ -173,6 +173,13 @@ struct IfStatement
     Program body;
 };
 
+struct ForStatement
+{
+    std::string variableName;
+    ExprPtr iterable;
+    Program body;
+};
+
 struct WhileStatement
 {
     ExprPtr condition;
@@ -203,6 +210,7 @@ struct Stmt
         ReturnStatement,
         IfStatement,
         WhileStatement,
+        ForStatement,
         ImportStatement>;
 
     Value value;
