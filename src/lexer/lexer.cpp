@@ -8,7 +8,9 @@
 inline bool isCharacter(const char &ch)
 {
     unsigned char lower = static_cast<unsigned char>(ch) | 0x20;
-    return (static_cast<unsigned char>(lower - 'a') < 26) || (ch == '_');
+    return (static_cast<unsigned char>(lower - 'a') < 26) ||
+           ch == '_' ||
+           ch == '.';
 }
 
 std::vector<Token> lex(std::string_view input)
@@ -93,6 +95,11 @@ std::vector<Token> lex(std::string_view input)
             }
             tokens.emplace_back(std::move(token));
             i += k - 1;
+        }
+        else if(current == ','){
+            Token token;
+            token.type = TokenType::Comma;
+            tokens.emplace_back(std::move(token));
         }
         else if (current == '<')
         {
@@ -448,12 +455,6 @@ std::vector<Token> lex(std::string_view input)
             i += k - 1;
         }
 
-        else if (current == '.')
-        {
-            Token token;
-            token.type = TokenType::Dot;
-            tokens.emplace_back(std::move(token));
-        }
         else if (current == ':')
         {
             Token token;

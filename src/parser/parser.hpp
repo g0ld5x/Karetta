@@ -11,21 +11,12 @@
 
 #include "../lexer/lexer.hpp"
 
-// ============================================================
-// Forward Declarations
-// ============================================================
-
 struct Expr;
 struct Stmt;
 struct Program;
 
 using ExprPtr = std::unique_ptr<Expr>;
 using StmtPtr = std::unique_ptr<Stmt>;
-
-
-// ============================================================
-// Variable / Type Information
-// ============================================================
 
 enum class VarType : uint8_t
 {
@@ -54,11 +45,6 @@ struct Variable
 
 using VariableTable = std::unordered_map<std::string, Variable>;
 using ScopeStack = std::vector<VariableTable>;
-
-
-// ============================================================
-// Expressions
-// ============================================================
 
 struct IntLiteral
 {
@@ -133,33 +119,21 @@ struct Expr
         IndexExpr,
         FunctionCall,
         BinaryExpr,
-        UnaryExpr
-    >;
+        UnaryExpr>;
 
     Value value;
 
     template <typename T>
-    Expr(T&& value)
+    Expr(T &&value)
         : value(std::forward<T>(value))
     {
     }
 };
 
-
-// ============================================================
-// Program
-// ============================================================
-
 struct Program
 {
     std::vector<StmtPtr> statements;
-
 };
-
-
-// ============================================================
-// Statements
-// ============================================================
 
 struct VariableDeclaration
 {
@@ -185,11 +159,6 @@ struct ReturnStatement
     ExprPtr value;
 };
 
-
-// ------------------------------------------------------------
-// Control Flow
-// ------------------------------------------------------------
-
 struct BreakStatement
 {
 };
@@ -210,11 +179,6 @@ struct WhileStatement
     Program body;
 };
 
-
-// ------------------------------------------------------------
-// Functions
-// ------------------------------------------------------------
-
 struct FunctionDeclaration
 {
     std::string name;
@@ -222,20 +186,10 @@ struct FunctionDeclaration
     Program body;
 };
 
-
-// ------------------------------------------------------------
-// Imports
-// ------------------------------------------------------------
-
 struct ImportStatement
 {
     std::vector<std::string> pathS;
 };
-
-
-// ============================================================
-// Statement Container
-// ============================================================
 
 struct Stmt
 {
@@ -249,33 +203,22 @@ struct Stmt
         ReturnStatement,
         IfStatement,
         WhileStatement,
-        ImportStatement
-    >;
+        ImportStatement>;
 
     Value value;
 
     template <typename T>
-    Stmt(T&& value)
+    Stmt(T &&value)
         : value(std::forward<T>(value))
     {
     }
 };
 
-
-// Program destructor must be defined after Stmt is complete.
-
-
-
-// ============================================================
-// Parser
-// ============================================================
-
 ExprPtr parseExpression(
-    const std::vector<Token>& tokens,
-    size_t& pos,
-    int minBindPower
-);
+    const std::vector<Token> &tokens,
+    size_t &pos,
+    int minBindPower);
 
-Program parse(const std::vector<Token>& input);
+Program parse(const std::vector<Token> &input);
 
 #endif
