@@ -134,9 +134,10 @@ void printExpr(const ExprPtr& expr, int depth = 0)
         }
         else if constexpr (std::is_same_v<T, UnaryExpr>)
         {
-            std::cout << indent << "Unary\n";
+            std::cout << indent << "Unary " << tokenTypeToString(node.op) << "\n";
             printExpr(node.operand, depth + 1);
         }
+
 
     }, expr->value);
 }
@@ -209,6 +210,26 @@ void printProgram(const Program& program)
                 std::cout << "    Expression: " ;
                 printExpr(node.expression);
             }
+            else if constexpr (std::is_same_v<T,ReturnStatement>){
+                std::cout << "  Return: \n";
+                std::cout << "    Expression: " ;
+                if(node.value == nullptr){
+                    std::cout << "      <none>\n";
+                }else{
+                printExpr(node.value);
+                }
+            }
+        else if constexpr (std::is_same_v<T,FunctionDeclaration>)
+        {
+            std::cout << "    Function Declaration: \n";
+            std::cout << "      Name: " << node.name << "\n";
+            for (auto &&i : node.parameters)
+            {
+                std::cout <<"Parameters: "<< "       " << i << "\n";
+            }
+            std::cout << "      Body: " ;printProgram(node.body); 
+            
+        }
 
             // Add more statement types here later.
 

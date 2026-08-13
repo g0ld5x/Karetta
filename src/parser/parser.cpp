@@ -71,6 +71,22 @@ ExprPtr parseArrayLiteral(const std::vector<Token> &tokens, size_t &pos){
     return std::make_unique<Expr>(std::move(array));
 }
 
+    StmtPtr parseBreak(const std::vector<Token> & tokens,size_t & pos){
+    ++pos;
+    return std::make_unique<Stmt>(
+    BreakStatement{}
+    );
+
+}
+
+    StmtPtr parseContinue(const std::vector<Token> & tokens,size_t & pos){
+    ++pos;
+    return std::make_unique<Stmt>(
+    ContinueStatement{}
+    );
+
+}
+
 std::string tokenTypeToString1(TokenType type)
 {
     switch (type)
@@ -252,6 +268,8 @@ int getBindingPower(TokenType type)
     // Multiplicative
     case TokenType::OpenBracket:
         return 100;
+    case TokenType::UnaryNot:
+        return 80;
     case TokenType::Multiply:
     case TokenType::Divide:
     case TokenType::Modulo:
@@ -303,6 +321,22 @@ int getBindingPower(TokenType type)
     default:
         return -1;
     }
+}
+
+StmtPtr parseReturn(const std::vector<Token>& tokens, size_t& pos)
+{
+    ++pos; // consume return
+
+    if ((tokens[pos].type == TokenType::StatementEnd  || tokens[pos].type == TokenType::EndOfFile)|| tokens[pos].type == TokenType::CloseCurl)
+    {
+        return std::make_unique<Stmt>(
+            ReturnStatement{nullptr}
+        );
+    }
+
+    return std::make_unique<Stmt>(
+        ReturnStatement{parseExpression(tokens, pos, 0)}
+    );
 }
 
 std::string variantToString1(const Value &a)
@@ -432,11 +466,32 @@ ExprPtr parseFunctionCall(
             std::move(name),
             std::move(arguments)});
 }
-
+bool isPrefixOperator(TokenType type)
+{
+    return type == TokenType::UnaryNot ||
+           type == TokenType::Add ||
+           type == TokenType::Minus;
+}
+ExprPtr makeUnary(TokenType op, ExprPtr operand)
+{
+    return std::make_unique<Expr>(
+        UnaryExpr{
+            std::move(operand),
+            op
+        }
+    );
+}
 ExprPtr parseExpression(const std::vector<Token> &tokens, size_t &pos, int minBindPower)
 {
     ExprPtr rhs;
     ExprPtr lhs;
+    if (isPrefixOperator(tokens[pos].type))
+    {
+        TokenType op = tokens[pos++].type;
+        ExprPtr operand = parseExpression(tokens, pos, 80);
+
+        return makeUnary(op, std::move(operand));
+    }
     if (tokens[pos].type == TokenType::Int)
     {
         lhs = std::make_unique<Expr>(
@@ -768,9 +823,75 @@ if (variantToString1(tokens[pos].value) == "const")
     }
 }
 
-StmtPtr parseFunctionDeclare(const std::vector<Token> &tokens, size_t &pos)
+StmtPtr parseFunctionDeclare(
+    const std::vector<Token>& tokens,
+    size_t& pos)
 {
-    return parseVariableDeclare(tokens, pos);
+    FunctionDeclaration func;
+
+    ++pos; // fn
+
+    // function name
+    if (tokens[pos].type != TokenType::Identifier)
+        throw std::runtime_error("Expected function name");
+
+    func.name = variantToString1(tokens[pos].value);
+    ++pos;
+
+    // (
+    if (tokens[pos].type != TokenType::OpenParan)
+        throw std::runtime_error("Expected '('");
+
+    ++pos;
+
+    if (tokens[pos].type != TokenType::CloseParan)
+    {
+        while (true)
+        {
+            if (tokens[pos].type != TokenType::Identifier)
+                throw std::runtime_error("Expected parameter name");
+
+            func.parameters.push_back(
+                variantToString1(tokens[pos].value)
+            );
+
+            ++pos;
+
+            if (tokens[pos].type == TokenType::CloseParan)
+                break;
+
+            if (tokens[pos].type != TokenType::Comma)
+                throw std::runtime_error("Expected ',' or ')'");
+
+            ++pos; // consume comma
+        }
+    }
+
+    ++pos; // consume ')'
+
+
+    // {
+    if (tokens[pos].type != TokenType::OpenCurl)
+        throw std::runtime_error("Expected '{'");
+
+    ++pos; // consume {
+
+    // Parse statements until matching }
+while (tokens[pos].type != TokenType::CloseCurl)
+{
+    func.body.statements.push_back(
+        parseStatement(tokens, pos)
+    );
+}
+
+    if (pos >= tokens.size())
+        throw std::runtime_error("Expected '}'");
+
+    ++pos; // consume }
+
+    return std::make_unique<Stmt>(
+        std::move(func)
+    );
 }
 // let global a = 10;
 StmtPtr parseStatement(const std::vector<Token>& tokens, size_t& pos)
@@ -784,13 +905,18 @@ StmtPtr parseStatement(const std::vector<Token>& tokens, size_t& pos)
 
         if (name == "let")
             return parseVariableDeclare(tokens, pos);
-
-        if (name == "fn")
+        else if(name == "return"){
+            return parseReturn(tokens,pos);
+        }
+        else if (name == "fn")
             return parseFunctionDeclare(tokens, pos);
 
-        if (name == "using")
+        else if (name == "using")
             return parseImport(tokens, pos);
-
+        else if(name == "break")
+            return parseBreak(tokens,pos);
+        else if(name == "continue")
+            return parseContinue(tokens,pos);
         if (pos + 1 < tokens.size() &&
             tokens[pos + 1].type == TokenType::OpenParan)
         {

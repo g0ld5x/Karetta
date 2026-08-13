@@ -1,22 +1,34 @@
-
 #ifndef AST_HPP
 #define AST_HPP
 
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <utility>
-#include <sstream>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
 #include "../lexer/lexer.hpp"
+
+// ============================================================
+// Forward Declarations
+// ============================================================
+
 struct Expr;
+struct Stmt;
+struct Program;
 
 using ExprPtr = std::unique_ptr<Expr>;
+using StmtPtr = std::unique_ptr<Stmt>;
 
-enum class VarType: uint8_t{
+
+// ============================================================
+// Variable / Type Information
+// ============================================================
+
+enum class VarType : uint8_t
+{
     Integer,
     Double,
     String,
@@ -25,7 +37,8 @@ enum class VarType: uint8_t{
     Array
 };
 
-struct VarData{
+struct VarData
+{
     bool isStrict;
     VarType variableType;
     bool isGlobal;
@@ -33,15 +46,19 @@ struct VarData{
     bool isMonoType;
 };
 
-struct Variable{
+struct Variable
+{
     Value value;
     VarData data;
 };
 
-using VariableTable =  std::unordered_map<std::string ,Variable>;
+using VariableTable = std::unordered_map<std::string, Variable>;
 using ScopeStack = std::vector<VariableTable>;
 
-ExprPtr parseExpression(const std::vector<Token> & tokens,size_t & pos, int  minBindPower);
+
+// ============================================================
+// Expressions
+// ============================================================
 
 struct IntLiteral
 {
@@ -51,24 +68,6 @@ struct IntLiteral
 struct DoubleLiteral
 {
     double value;
-};
-
-struct IndexExpr{
-    ExprPtr object;
-    ExprPtr index;
-};
-
-struct ArrayLiteral {
-    std::vector<ExprPtr> elements;
-};
-
-struct VariableCall{
-    std::string name;
-};
-
-struct FunctionCall{
-    std::string name;
-    std::vector<ExprPtr> arguments;
 };
 
 struct BoolLiteral
@@ -86,8 +85,21 @@ struct StringLiteral
     std::string value;
 };
 
+struct VariableCall
+{
+    std::string name;
+};
 
+struct IndexExpr
+{
+    ExprPtr object;
+    ExprPtr index;
+};
 
+struct ArrayLiteral
+{
+    std::vector<ExprPtr> elements;
+};
 
 struct BinaryExpr
 {
@@ -102,6 +114,11 @@ struct UnaryExpr
     TokenType op;
 };
 
+struct FunctionCall
+{
+    std::string name;
+    std::vector<ExprPtr> arguments;
+};
 
 struct Expr
 {
@@ -129,11 +146,20 @@ struct Expr
 };
 
 
+// ============================================================
+// Program
+// ============================================================
 
-struct Stmt;
+struct Program
+{
+    std::vector<StmtPtr> statements;
+
+};
 
 
-using StmtPtr = std::unique_ptr<Stmt>;
+// ============================================================
+// Statements
+// ============================================================
 
 struct VariableDeclaration
 {
@@ -141,8 +167,6 @@ struct VariableDeclaration
     ExprPtr initializer;
     std::string name;
 };
-
-
 
 struct Assignment
 {
@@ -161,17 +185,47 @@ struct ReturnStatement
     ExprPtr value;
 };
 
+
+// ------------------------------------------------------------
+// Control Flow
+// ------------------------------------------------------------
+
+struct BreakStatement
+{
+};
+
+struct ContinueStatement
+{
+};
+
 struct IfStatement
 {
     ExprPtr condition;
-    std::vector<StmtPtr> body;
+    Program body;
 };
 
 struct WhileStatement
 {
     ExprPtr condition;
-    std::vector<StmtPtr> body;
+    Program body;
 };
+
+
+// ------------------------------------------------------------
+// Functions
+// ------------------------------------------------------------
+
+struct FunctionDeclaration
+{
+    std::string name;
+    std::vector<std::string> parameters;
+    Program body;
+};
+
+
+// ------------------------------------------------------------
+// Imports
+// ------------------------------------------------------------
 
 struct ImportStatement
 {
@@ -179,10 +233,17 @@ struct ImportStatement
 };
 
 
+// ============================================================
+// Statement Container
+// ============================================================
+
 struct Stmt
 {
     using Value = std::variant<
         VariableDeclaration,
+        FunctionDeclaration,
+        BreakStatement,
+        ContinueStatement,
         Assignment,
         ExpressionStatement,
         ReturnStatement,
@@ -201,13 +262,20 @@ struct Stmt
 };
 
 
-
-struct Program
-{
-    std::vector<StmtPtr> statements;
-};
+// Program destructor must be defined after Stmt is complete.
 
 
 
-Program parse(const  std::vector<Token> & input);
+// ============================================================
+// Parser
+// ============================================================
+
+ExprPtr parseExpression(
+    const std::vector<Token>& tokens,
+    size_t& pos,
+    int minBindPower
+);
+
+Program parse(const std::vector<Token>& input);
+
 #endif
