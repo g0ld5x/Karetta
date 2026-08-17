@@ -10,7 +10,6 @@ int main()
     llvm::Module module("KarettaModule", context);
     llvm::IRBuilder<> builder(context);
 
-    // printf: int printf(const char*, ...)
     llvm::FunctionType* printfType =
         llvm::FunctionType::get(
             llvm::Type::getInt32Ty(context),
@@ -26,7 +25,7 @@ int main()
             module
         );
 
-    // int main()
+
     llvm::FunctionType* mainType =
         llvm::FunctionType::get(
             llvm::Type::getInt32Ty(context),
@@ -41,7 +40,7 @@ int main()
             module
         );
 
-    // entry:
+
     llvm::BasicBlock* entry =
         llvm::BasicBlock::Create(
             context,
@@ -51,20 +50,19 @@ int main()
 
     builder.SetInsertPoint(entry);
 
-    // "Hello, world!\n"
+
     llvm::Value* hello =
         builder.CreateGlobalStringPtr(
             "Hello, world!\n",
             "hello"
         );
 
-    // printf(hello)
+
     builder.CreateCall(
         printfFunc,
         {hello}
     );
 
-    // return 0
     builder.CreateRet(
         llvm::ConstantInt::get(
             llvm::Type::getInt32Ty(context),
@@ -72,7 +70,6 @@ int main()
         )
     );
 
-    // Check that we didn't produce invalid IR.
     if (llvm::verifyModule(module, &llvm::errs()))
         return 1;
 
